@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>POS-System — Documentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#14181C;
+    --panel:#1A1F25;
+    --panel-2:#1F252C;
+    --hair:#2B323A;
+    --hair-soft:#232A31;
+    --text:#E7EAED;
+    --muted:#8B94A0;
+    --muted-2:#656E79;
+    --signal:#8FD3A8;
+    --signal-dim:#5E9C77;
+    --gold:#D9B36C;
+    --danger:#D97A6C;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-padding-top:env(safe-area-inset-top,0px); scroll-behavior:smooth;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--text);
+    font-family:'Space Grotesk',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  [dir="rtl"]{ font-family:'Vazirmatn',sans-serif; }
+  .mono{ font-family:'IBM Plex Mono',monospace; }
+
+  a{color:inherit;}
+
+  ::selection{ background:var(--signal); color:#0C100D; }
+
+  /* ---------- top nav / language rail ---------- */
+  .railwrap{
+    position:sticky; top:0; z-index:50;
+    background:rgba(20,24,28,.86);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--hair);
+  }
+  .rail{
+    max-width:1180px; margin:0 auto;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 24px;
+  }
+  .brand{
+    display:flex; align-items:center; gap:10px;
+    font-size:15px; letter-spacing:.01em; color:var(--text);
+  }
+  .brand .dot{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--signal);
+    box-shadow:0 0 0 3px rgba(143,211,168,.18);
+  }
+  .brand .sub{ color:var(--muted-2); font-size:12px; }
+  .langtoggle{ display:flex; gap:2px; background:var(--panel-2); border:1px solid var(--hair); border-radius:7px; padding:3px; }
+  .langtoggle a{
+    text-decoration:none; font-size:12.5px; padding:6px 13px; border-radius:5px; color:var(--muted);
+    transition:color .15s ease, background .15s ease;
+  }
+  .langtoggle a:hover{ color:var(--text); }
+  .langtoggle a.active{ background:var(--ink); color:var(--signal); border:1px solid var(--hair); }
+
+  /* ---------- hero ---------- */
+  .hero{
+    max-width:1180px; margin:0 auto;
+    padding:72px 24px 56px;
+  }
+  .kicker{
+    color:var(--signal); font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px; margin:0 0 18px;
+  }
+  [dir="rtl"] .kicker{ font-family:'Vazirmatn',sans-serif; font-size:13px; }
+  h1.title{
+    font-size:clamp(34px,5.4vw,58px);
+    line-height:1.04; margin:0 0 20px; font-weight:600; letter-spacing:-.01em;
+    max-width:14ch;
+  }
+  [dir="rtl"] h1.title{ font-weight:800; letter-spacing:0; max-width:none; }
+  .lede{
+    font-size:17px; line-height:1.65; color:var(--muted); max-width:62ch; margin:0 0 8px;
+  }
+  [dir="rtl"] .lede{ font-size:16.5px; }
+
+  /* ---------- architecture diagram ---------- */
+  .diagram{
+    max-width:1180px; margin:8px auto 64px; padding:0 24px;
+  }
+  .diagram-frame{
+    border:1px solid var(--hair); border-radius:10px; background:var(--panel);
+    padding:28px; overflow-x:auto;
+  }
+  svg.arch{ display:block; width:100%; height:auto; min-width:640px; }
+  .node-box{ fill:var(--panel-2); stroke:var(--hair); stroke-width:1; }
+  .node-title{ fill:var(--text); font:600 14px 'Space Grotesk',sans-serif; }
+  [dir="rtl"] .node-title{ font:700 14px 'Vazirmatn',sans-serif; }
+  .node-sub{ fill:var(--muted); font:11.5px 'IBM Plex Mono',monospace; }
+  .node-port{ fill:var(--signal); font:600 12px 'IBM Plex Mono',monospace; }
+  .flow-line{ stroke:var(--hair); stroke-width:1.5; fill:none; }
+  .flow-line.live{ stroke:var(--signal-dim); stroke-dasharray:4 4; }
+  .flow-dot{ fill:var(--signal); opacity:0; }
+
+  @keyframes drawline{ from{ stroke-dashoffset:var(--len); } to{ stroke-dashoffset:0; } }
+  @keyframes popnode{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:translateY(0);} }
+  @keyframes dotrun{ 0%{ opacity:0; offset-distance:0%; } 8%{opacity:1;} 92%{opacity:1;} 100%{ opacity:0; offset-distance:100%; } }
+
+  .n{ opacity:0; animation:popnode .5s ease forwards; }
+  .n1{ animation-delay:.05s; } .n2{ animation-delay:.22s; } .n3{ animation-delay:.39s; } .n4{ animation-delay:.56s; }
+  .l{ stroke-dasharray:var(--len); stroke-dashoffset:var(--len); animation:drawline .6s ease forwards; }
+  .l1{ animation-delay:.3s; } .l2{ animation-delay:.47s; } .l3{ animation-delay:.64s; }
+
+  @media (prefers-reduced-motion: reduce){
+    .n{ animation:none; opacity:1; }
+    .l{ animation:none; stroke-dashoffset:0; }
+  }
+
+  /* ---------- content sections ---------- */
+  .section{
+    max-width:1180px; margin:0 auto; padding:52px 24px;
+    border-top:1px solid var(--hair-soft);
+  }
+  .section-head{
+    display:flex; align-items:baseline; gap:14px; margin-bottom:26px;
+  }
+  [dir="rtl"] .section-head{ flex-direction:row-reverse; }
+  .section-num{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--signal-dim); }
+  [dir="rtl"] .section-num{ font-family:'Vazirmatn',sans-serif; }
+  h2{ font-size:22px; font-weight:600; margin:0; letter-spacing:-.005em; }
+  [dir="rtl"] h2{ font-weight:700; }
+
+  .grid4{ display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--hair); border:1px solid var(--hair); border-radius:8px; overflow:hidden; }
+  @media (max-width:860px){ .grid4{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:520px){ .grid4{ grid-template-columns:1fr; } }
+  .appcard{ background:var(--panel); padding:20px; }
+  .appcard .ac-port{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--signal); margin-bottom:10px; }
+  .appcard h3{ font-size:15.5px; margin:0 0 8px; font-weight:600; }
+  [dir="rtl"] .appcard h3{ font-weight:700; }
+  .appcard p{ font-size:13.5px; color:var(--muted); line-height:1.55; margin:0 0 10px; }
+  .appcard .ac-path{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--muted-2); word-break:break-all; }
+
+  table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  caption{ caption-side:top; text-align:[dir=rtl] right left; }
+  th,td{ text-align:left; padding:10px 14px; border-bottom:1px solid var(--hair-soft); }
+  [dir="rtl"] th, [dir="rtl"] td{ text-align:right; }
+  th{ color:var(--muted-2); font-weight:500; font-size:12px; font-family:'IBM Plex Mono',monospace; }
+  [dir="rtl"] th{ font-family:'Vazirmatn',sans-serif; font-size:12.5px; }
+  td{ color:var(--text); }
+  td .mono, th .mono{ color:var(--signal); }
+  .tablewrap{ border:1px solid var(--hair); border-radius:8px; overflow:hidden; background:var(--panel); }
+  tr:last-child td{ border-bottom:none; }
+
+  .features{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:760px){ .features{ grid-template-columns:1fr; } }
+  .feat{ border:1px solid var(--hair); border-radius:8px; padding:18px 20px; background:var(--panel); }
+  .feat h4{ font-size:14px; margin:0 0 10px; font-weight:600; color:var(--text); }
+  [dir="rtl"] .feat h4{ font-weight:700; }
+  .feat ul{ margin:0; padding:0; list-style:none; }
+  .feat li{ font-size:13px; color:var(--muted); line-height:1.9; padding-inline-start:16px; position:relative; }
+  .feat li::before{ content:"–"; position:absolute; inset-inline-start:0; color:var(--muted-2); }
+
+  .codebox{
+    background:#10141A; border:1px solid var(--hair); border-radius:8px;
+    padding:18px 20px; font-family:'IBM Plex Mono',monospace; font-size:12.8px; line-height:1.7;
+    color:#C9D1D9; overflow-x:auto; direction:ltr; text-align:left;
+  }
+  .codebox .c{ color:var(--muted-2); }
+  .codebox .s{ color:var(--gold); }
+
+  .creds .tablewrap{ max-width:620px; }
+
+  .currencyflow{ display:flex; align-items:center; gap:0; flex-wrap:wrap; margin-top:18px; }
+  [dir="rtl"] .currencyflow{ flex-direction:row-reverse; }
+  .cstep{ background:var(--panel); border:1px solid var(--hair); border-radius:7px; padding:14px 18px; font-size:13px; min-width:150px; }
+  .cstep .clabel{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--muted-2); letter-spacing:.03em; margin-bottom:6px; }
+  [dir="rtl"] .cstep .clabel{ font-family:'Vazirmatn',sans-serif; letter-spacing:0; }
+  .cstep .cval{ color:var(--gold); font-family:'IBM Plex Mono',monospace; font-weight:600; }
+  .carrow{ color:var(--muted-2); padding:0 10px; font-size:16px; }
+
+  .rolebars{ display:flex; flex-direction:column; gap:10px; }
+  .rolebar{ display:grid; grid-template-columns:120px 1fr; gap:16px; align-items:center; }
+  [dir="rtl"] .rolebar{ grid-template-columns:1fr 120px; }
+  [dir="rtl"] .rolebar .rb-name{ order:2; text-align:left; }
+  [dir="rtl"] .rolebar .rb-track{ order:1; }
+  .rb-name{ font-size:13px; color:var(--text); font-weight:500; }
+  .rb-track{ background:var(--panel); border:1px solid var(--hair); border-radius:5px; height:30px; display:flex; align-items:center; overflow:hidden; }
+  .rb-fill{ height:100%; background:linear-gradient(90deg, var(--signal-dim), var(--signal)); display:flex; align-items:center; padding-inline-start:10px; font-size:11px; color:#0C100D; font-weight:600; white-space:nowrap; }
+
+  footer{
+    max-width:1180px; margin:0 auto; padding:40px 24px 64px;
+    display:flex; justify-content:space-between; flex-wrap:wrap; gap:14px;
+    color:var(--muted-2); font-size:12.5px; border-top:1px solid var(--hair-soft);
+  }
+  [dir="rtl"] footer{ flex-direction:row-reverse; }
+  footer a{ color:var(--muted); text-decoration:none; border-bottom:1px solid var(--hair); }
+  footer a:hover{ color:var(--signal); }
+
+  .divider-lang{
+    max-width:1180px; margin:0 auto; padding:0 24px;
+  }
+  .divider-lang .bar{
+    height:1px; background:linear-gradient(90deg, transparent, var(--hair) 20%, var(--hair) 80%, transparent);
+    margin:30px 0;
+  }
+
+  #fa{ direction:rtl; }
+
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --ink:#14181C; --panel:#1A1F25; --panel-2:#1F252C; --text:#E7EAED; --muted:#8B94A0;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="railwrap">
+  <div class="rail">
+    <div class="brand"><span class="dot"></span>POS-System <span class="sub">/ docs</span></div>
+    <div class="langtoggle">
+      <a href="#en" id="nav-en" class="active">EN</a>
+      <a href="#fa" id="nav-fa">فارسی</a>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- ENGLISH -->
+<!-- ============================================================ -->
+<main id="en" dir="ltr" lang="en">
+
+  <section class="hero">
+    <p class="kicker mono">// four services, one ledger</p>
+    <h1 class="title">POS-System documentation</h1>
+    <p class="lede">A point-of-sale and inventory platform split into four independent applications — a shared backend, an admin console, a till for sales staff, and a console for the warehouse. This page covers architecture, roles, setup, and the data rules that hold it together.</p>
+  </section>
+
+  <div class="diagram">
+    <div class="diagram-frame">
+      <svg class="arch" viewBox="0 0 1040 360" xmlns="http://www.w3.org/2000/svg">
+        <!-- connecting lines, all terminate at backend center -->
+        <path class="flow-line l l1" style="--len:260" d="M 260,90 C 340,90 340,180 420,180" />
+        <path class="flow-line l l2" style="--len:220" d="M 420,230 C 500,260 540,260 620,230" />
+        <path class="flow-line l l3" style="--len:260" d="M 780,90 C 700,90 700,180 620,180" />
+
+        <!-- Backend - center -->
+        <g class="n n2">
+          <rect class="node-box" x="420" y="150" width="200" height="88" rx="8"/>
+          <text class="node-title" x="440" y="178">Backend API</text>
+          <text class="node-port" x="440" y="198">:5000</text>
+          <text class="node-sub" x="440" y="218">Express · Prisma · SQLite</text>
+        </g>
+
+        <!-- Admin - top left -->
+        <g class="n n1">
+          <rect class="node-box" x="60" y="52" width="200" height="88" rx="8"/>
+          <text class="node-title" x="80" y="80">Admin Panel</text>
+          <text class="node-port" x="80" y="100">:8080</text>
+          <text class="node-sub" x="80" y="120">React · Vite · TanStack</text>
+        </g>
+
+        <!-- Sales - bottom left -->
+        <g class="n n3">
+          <rect class="node-box" x="60" y="196" width="200" height="88" rx="8"/>
+          <text class="node-title" x="80" y="224">Sales System</text>
+          <text class="node-port" x="80" y="244">:3000</text>
+          <text class="node-sub" x="80" y="264">Next.js · invoicing</text>
+        </g>
+
+        <!-- Warehouse - top right -->
+        <g class="n n4">
+          <rect class="node-box" x="780" y="52" width="200" height="88" rx="8"/>
+          <text class="node-title" x="800" y="80">Warehouse System</text>
+          <text class="node-port" x="800" y="100">:3001</text>
+          <text class="node-sub" x="800" y="120">Next.js · stock</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="section-head"><span class="section-num mono">01</span><h2>The four applications</h2></div>
+    <div class="grid4">
+      <div class="appcard">
+        <div class="ac-port">:5000</div>
+        <h3>Backend</h3>
+        <p>Handles every API call, authentication, and database read/write. Nothing else in the system talks to the database directly.</p>
+        <div class="ac-path">pos-backend/</div>
+      </div>
+      <div class="appcard">
+        <div class="ac-port">:8080</div>
+        <h3>Admin Panel</h3>
+        <p>Full control surface — products, customers, users, invoices, inventory, reports, and settlements.</p>
+        <div class="ac-path">rtl-admin-dashboard/</div>
+      </div>
+      <div class="appcard">
+        <div class="ac-port">:3000</div>
+        <h3>Sales System</h3>
+        <p>What a seller uses at the counter: build a cart, apply discounts, print the invoice.</p>
+        <div class="ac-path">invoice-management-system/</div>
+      </div>
+      <div class="appcard">
+        <div class="ac-port">:3001</div>
+        <h3>Warehouse System</h3>
+        <p>Add or subtract stock with a reason attached, and flag items running low.</p>
+        <div class="ac-path">invoice-inventory-system/</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section creds">
+    <div class="section-head"><span class="section-num mono">02</span><h2>Login credentials</h2></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Role</th><th>Phone</th><th>Password</th></tr></thead>
+        <tbody>
+          <tr><td>Admin</td><td class="mono">09121112233</td><td class="mono">123456</td></tr>
+          <tr><td>Sales</td><td>Created by admin</td><td>—</td></tr>
+          <tr><td>Warehouse</td><td>Created by admin</td><td>—</td></tr>
+          <tr><td>Sales Admin</td><td>Created by admin</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><span class="section-num mono">03</span><h2>Role permissions</h2></div>
+    <div class="rolebars">
+      <div class="rolebar"><div class="rb-name">Admin</div><div class="rb-track"><div class="rb-fill" style="width:100%">Full system access</div></div></div>
+      <div class="rolebar"><div class="rb-name">Sales Admin</div><div class="rb-track"><div class="rb-fill" style="width:72%">Invoicing · counts · no watermark</div></div></div>
+      <div class="rolebar"><div class="rb-name">Sales</div><div class="rb-track"><div class="rb-fill" style="width:40%">Invoicing only · watermarked</div></div></div>
+      <div class="rolebar"><div class="rb-name">Warehouse</div><div class="rb-track"><div class="rb-fill" style="width:34%">Inventory only</div></div></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><span class="section-num mono">04</span><h2>Core features</h2></div>
+    <div class="features">
+      <div class="feat">
+        <h4>Products &amp; inventory</h4>
+        <ul>
+          <li>Optional unique product code, barcode support</li>
+          <li>Units: bottle, carton, liter — carton quantity configurable</li>
+          <li>Unit and carton pricing auto-calculated</li>
+          <li>Stock minimums and in/out-of-stock status</li>
+        </ul>
+      </div>
+      <div class="feat">
+        <h4>Customers &amp; settlements</h4>
+        <ul>
+          <li>Purchase history and running statistics</li>
+          <li>Debt calculation and partial-payment settlement</li>
+          <li>Payment history per customer</li>
+        </ul>
+      </div>
+      <div class="feat">
+        <h4>Invoicing</h4>
+        <ul>
+          <li>Customer search or on-the-fly creation</li>
+          <li>Item and total discounts</li>
+          <li>Draft watermark for regular sellers, printed with product codes</li>
+        </ul>
+      </div>
+      <div class="feat">
+        <h4>Reporting</h4>
+        <ul>
+          <li>Sales by day, week, month</li>
+          <li>Top 5 customers, seller commission at 4%</li>
+          <li>Excel and PDF export</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><span class="section-num mono">05</span><h2>Currency handling</h2></div>
+    <p class="lede" style="font-size:14.5px;">One amount, three representations depending on where it surfaces.</p>
+    <div class="currencyflow">
+      <div class="cstep"><div class="clabel">STORED</div><div class="cval">Rial (IRR)</div></div>
+      <div class="carrow">→</div>
+      <div class="cstep"><div class="clabel">ON SCREEN</div><div class="cval">Toman (÷10)</div></div>
+      <div class="carrow">→</div>
+      <div class="cstep"><div class="clabel">PRINTED</div><div class="cval">Rial, labeled</div></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><span class="section-num mono">06</span><h2>Setup</h2></div>
+    <div class="codebox">
+<span class="c"># clone</span>
+git clone https://github.com/here-is-leo/pos-system.git
+cd pos-system
+
+<span class="c"># backend — :5000</span>
+cd pos-backend && npm install
+npx prisma generate
+npx prisma migrate dev --name init
+npm run dev
+
+<span class="c"># admin — :8080</span>
+cd ../rtl-admin-dashboard && npm install && npm run dev
+
+<span class="c"># sales — :3000</span>
+cd ../invoice-management-system && npm install && npm run dev
+
+<span class="c"># warehouse — :3001</span>
+cd ../invoice-inventory-system && npm install && npm run dev
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><span class="section-num mono">07</span><h2>Key API endpoints</h2></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">POST</td><td class="mono">/api/auth/login</td><td>User login</td></tr>
+          <tr><td class="mono">GET</td><td class="mono">/api/products</td><td>List products</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/api/invoices</td><td>Create invoice</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/api/invoices/:id/finalize</td><td>Finalize invoice</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/api/inventory/add</td><td>Add stock</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/api/inventory/subtract</td><td>Subtract stock</td></tr>
+          <tr><td class="mono">GET</td><td class="mono">/api/customers/with-debt</td><td>Customers with outstanding debt</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/api/payments</td><td>Record a payment</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><span class="section-num mono">08</span><h2>Stack &amp; security</h2></div>
+    <div class="features">
+      <div class="feat">
+        <h4>Technology</h4>
+        <ul>
+          <li>Node.js + Express, SQLite via Prisma</li>
+          <li>React + Vite + TanStack Router, Next.js 16 (×2)</li>
+          <li>Tailwind CSS + shadcn/ui, Recharts, XLSX, jsPDF</li>
+        </ul>
+      </div>
+      <div class="feat">
+        <h4>Security</h4>
+        <ul>
+          <li>JWT auth, 7-day expiry · bcrypt password hashing</li>
+          <li>Rate limiting, captcha after 3 failed attempts</li>
+          <li>Role-based access, CORS restricted to allowed domains</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div>Developer: Ilya Farahani · <a href="mailto:ilyafarahanii@gmail.com">ilyafarahanii@gmail.com</a></div>
+    <div><a href="https://github.com/here-is-leo/pos-system">github.com/here-is-leo/pos-system</a> · MIT License</div>
+  </footer>
+</main>
+
+<div class="divider-lang"><div class="bar"></div></div>
+
+<!-- ============================================================ -->
+<!-- PERSIAN / FARSI -->
+<!-- ============================================================ -->
+<main id="fa" dir="rtl" lang="fa">
+
+  <section class="hero">
+    <p class="kicker">// چهار سرویس، یک دفتر حساب</p>
+    <h1 class="title">مستندات سیستم POS</h1>
+    <p class="lede">یک پلتفرم فروش و مدیریت موجودی که به چهار اپلیکیشن مستقل تقسیم شده است: یک بک‌اند مشترک، یک پنل مدیریت، یک صندوق برای فروشندگان، و یک کنسول برای انباردار. این صفحه معماری، نقش‌ها، نصب، و قوانین داده‌ای را که همه را کنار هم نگه می‌دارد پوشش می‌دهد.</p>
+  </section>
+
+  <div class="diagram">
+    <div class="diagram-frame">
+      <svg class="arch" viewBox="0 0 1040 360" xmlns="http://www.w3.org/2000/svg">
+        <path class="flow-line l l1" style="--len:260" d="M 780,90 C 700,90 700,180 620,180" />
+        <path class="flow-line l l2" style="--len:220" d="M 620,230 C 540,260 500,260 420,230" />
+        <path class="flow-line l l3" style="--len:260" d="M 260,90 C 340,90 340,180 420,180" />
+
+        <g class="n n2">
+          <rect class="node-box" x="420" y="150" width="200" height="88" rx="8"/>
+          <text class="node-title" x="600" y="178" text-anchor="end">بک‌اند</text>
+          <text class="node-port" x="600" y="198" text-anchor="end">5000:</text>
+          <text class="node-sub" x="600" y="218" text-anchor="end" font-family="IBM Plex Mono, monospace">Express · Prisma · SQLite</text>
+        </g>
+
+        <g class="n n1">
+          <rect class="node-box" x="780" y="52" width="200" height="88" rx="8"/>
+          <text class="node-title" x="960" y="80" text-anchor="end">پنل ادمین</text>
+          <text class="node-port" x="960" y="100" text-anchor="end">8080:</text>
+          <text class="node-sub" x="960" y="120" text-anchor="end" font-family="IBM Plex Mono, monospace">React · Vite · TanStack</text>
+        </g>
+
+        <g class="n n3">
+          <rect class="node-box" x="780" y="196" width="200" height="88" rx="8"/>
+          <text class="node-title" x="960" y="224" text-anchor="end">سیستم فروشنده</text>
+          <text class="node-port" x="960" y="244" text-anchor="end">3000:</text>
+          <text class="node-sub" x="960" y="264" text-anchor="end" font-family="IBM Plex Mono, monospace">Next.js · فاکتور</text>
+        </g>
+
+        <g class="n n4">
+          <rect class="node-box" x="60" y="52" width="200" height="88" rx="8"/>
+          <text class="node-title" x="240" y="80" text-anchor="end">سیستم انباردار</text>
+          <text class="node-port" x="240" y="100" text-anchor="end">3001:</text>
+          <text class="node-sub" x="240" y="120" text-anchor="end" font-family="IBM Plex Mono, monospace">Next.js · موجودی</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="section-head"><span class="section-num">۰۱</span><h2>چهار اپلیکیشن</h2></div>
+    <div class="grid4">
+      <div class="appcard">
+        <div class="ac-port mono">:5000</div>
+        <h3>بک‌اند</h3>
+        <p>تمام API ها، احراز هویت، و خواندن/نوشتن دیتابیس از همین‌جا عبور می‌کند. هیچ بخش دیگری مستقیم به دیتابیس وصل نیست.</p>
+        <div class="ac-path">pos-backend/</div>
+      </div>
+      <div class="appcard">
+        <div class="ac-port mono">:8080</div>
+        <h3>پنل ادمین</h3>
+        <p>دسترسی کامل — محصولات، مشتریان، کاربران، فاکتورها، موجودی، گزارش‌ها و تسویه‌حساب.</p>
+        <div class="ac-path">rtl-admin-dashboard/</div>
+      </div>
+      <div class="appcard">
+        <div class="ac-port mono">:3000</div>
+        <h3>سیستم فروشنده</h3>
+        <p>چیزی که فروشنده پشت پیشخوان استفاده می‌کند: ساخت سبد خرید، اعمال تخفیف، چاپ فاکتور.</p>
+        <div class="ac-path">invoice-management-system/</div>
+      </div>
+      <div class="appcard">
+        <div class="ac-port mono">:3001</div>
+        <h3>سیستم انباردار</h3>
+        <p>افزودن یا کسر موجودی همراه با دلیل، و هشدار برای کالاهای رو به اتمام.</p>
+        <div class="ac-path">invoice-inventory-system/</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section creds">
+    <div class="section-head"><span class="section-num">۰۲</span><h2>اطلاعات ورود</h2></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>نقش</th><th>تلفن</th><th>رمز عبور</th></tr></thead>
+        <tbody>
+          <tr><td>ادمین</td><td class="mono">09121112233</td><td class="mono">123456</td></tr>
+          <tr><td>فروشنده</td><td>ساخته‌شده توسط ادمین</td><td>—</td></tr>
+          <tr><td>انباردار</td><td>ساخته‌شده توسط ادمین</td><td>—</td></tr>
+          <tr><td>فروش (ادمین)</td><td>ساخته‌شده توسط ادمین</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><span class="section-num">۰۳</span><h2>سطح دسترسی نقش‌ها</h2></div>
+    <div class="rolebars">
+      <div class="rolebar"><div class="rb-name">ادمین</div><div class="rb-track"><div class="rb-fill" style="width:100%">دسترسی کامل به سیستم</div></div></div>
+      <div class="rolebar"><div class="rb-name">فروش (ادمین)</div><div class="rb-track"><div class="rb-fill" style="width:72%">فاکتور · آمار · بدون واترمارک</div></div></div>
+      <div class="rolebar"><div class="rb-name">فروشنده</div><div class="rb-track"><div class="rb-fill" style="width:40%">فقط فاکتور · واترمارک‌دار</div></div></div>
+      <div class="rolebar"><div class="rb-name">انباردار</div><div class="rb-track"><div class="rb-fill" style="width:34%">فقط موجودی</div></div></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><span class="section-num">۰۴</span><h2>قابلیت‌های اصلی</h2></div>
+    <div class="features">
+      <div class="feat">
+        <h4>محصولات و موجودی</h4>
+        <ul>
+          <li>کد کالای یکتا (اختیاری)، پشتیبانی از بارکد</li>
+          <li>واحدها: بطری، کارتن، لیتر — تعداد در کارتن قابل تنظیم</li>
+          <li>قیمت واحد و کارتن به‌صورت خودکار محاسبه می‌شود</li>
+          <li>حداقل موجودی و وضعیت موجود/ناموجود</li>
+        </ul>
+      </div>
+      <div class="feat">
+        <h4>مشتریان و تسویه‌حساب</h4>
+        <ul>
+          <li>تاریخچه خرید و آمار لحظه‌ای</li>
+          <li>محاسبه بدهی و تسویه با پرداخت جزئی</li>
+          <li>تاریخچه پرداخت برای هر مشتری</li>
+        </ul>
+      </div>
+      <div class="feat">
+        <h4>صدور فاکتور</h4>
+        <ul>
+          <li>جستجوی مشتری یا ایجاد در لحظه</li>
+          <li>تخفیف آیتمی و کلی</li>
+          <li>واترمارک پیش‌نویس برای فروشندگان عادی، چاپ با کد کالا</li>
+        </ul>
+      </div>
+      <div class="feat">
+        <h4>گزارش‌گیری</h4>
+        <ul>
+          <li>فروش روزانه، هفتگی، ماهانه</li>
+          <li>۵ مشتری برتر، کمیسیون فروشنده ۴٪</li>
+          <li>خروجی Excel و PDF</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><span class="section-num">۰۵</span><h2>قوانین واحد پول</h2></div>
+    <p class="lede" style="font-size:14.5px;">یک مبلغ، سه نمایش متفاوت بسته به جایی که نشان داده می‌شود.</p>
+    <div class="currencyflow">
+      <div class="cstep"><div class="clabel">ذخیره‌شده</div><div class="cval">ریال</div></div>
+      <div class="carrow">←</div>
+      <div class="cstep"><div class="clabel">روی صفحه</div><div class="cval">تومان (÷۱۰)</div></div>
+      <div class="carrow">←</div>
+      <div class="cstep"><div class="clabel">فاکتور چاپی</div><div class="cval">ریال، با برچسب</div></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><span class="section-num">۰۶</span><h2>نصب و راه‌اندازی</h2></div>
+    <div class="codebox">
+<span class="c"># کلون کردن مخزن</span>
+git clone https://github.com/here-is-leo/pos-system.git
+cd pos-system
+
+<span class="c"># بک‌اند — :5000</span>
+cd pos-backend && npm install
+npx prisma generate
+npx prisma migrate dev --name init
+npm run dev
+
+<span class="c"># پنل ادمین — :8080</span>
+cd ../rtl-admin-dashboard && npm install && npm run dev
+
+<span class="c"># سیستم فروشنده — :3000</span>
+cd ../invoice-management-system && npm install && npm run dev
+
+<span class="c"># سیستم انباردار — :3001</span>
+cd ../invoice-inventory-system && npm install && npm run dev
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><span class="section-num">۰۷</span><h2>APIهای کلیدی</h2></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>متد</th><th>مسیر</th><th>توضیح</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">POST</td><td class="mono">/api/auth/login</td><td>ورود کاربر</td></tr>
+          <tr><td class="mono">GET</td><td class="mono">/api/products</td><td>دریافت محصولات</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/api/invoices</td><td>ایجاد فاکتور</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/api/invoices/:id/finalize</td><td>نهایی‌سازی فاکتور</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/api/inventory/add</td><td>افزودن موجودی</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/api/inventory/subtract</td><td>کسر موجودی</td></tr>
+          <tr><td class="mono">GET</td><td class="mono">/api/customers/with-debt</td><td>مشتریان دارای بدهی</td></tr>
+          <tr><td class="mono">POST</td><td class="mono">/api/payments</td><td>ثبت پرداخت</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><span class="section-num">۰۸</span><h2>فناوری و امنیت</h2></div>
+    <div class="features">
+      <div class="feat">
+        <h4>فناوری</h4>
+        <ul>
+          <li>Node.js + Express، SQLite از طریق Prisma</li>
+          <li>React + Vite + TanStack Router، دو Next.js 16</li>
+          <li>Tailwind CSS + shadcn/ui، Recharts، XLSX، jsPDF</li>
+        </ul>
+      </div>
+      <div class="feat">
+        <h4>امنیت</h4>
+        <ul>
+          <li>احراز هویت JWT با انقضای ۷ روز · هش رمز با bcrypt</li>
+          <li>محدودیت نرخ درخواست، کپچا پس از ۳ تلاش ناموفق</li>
+          <li>دسترسی مبتنی بر نقش، محدودیت CORS به دامنه‌های مجاز</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div>توسعه‌دهنده: ایلیا فراهانی · <a href="mailto:ilyafarahanii@gmail.com">ilyafarahanii@gmail.com</a></div>
+    <div><a href="https://github.com/here-is-leo/pos-system">github.com/here-is-leo/pos-system</a> · مجوز MIT</div>
+  </footer>
+</main>
+
+<script>
+  // active state on nav based on scroll position
+  const navEn = document.getElementById('nav-en');
+  const navFa = document.getElementById('nav-fa');
+  const enSec = document.getElementById('en');
+  const faSec = document.getElementById('fa');
+  function setActive(){
+    try{
+      const y = window.scrollY + 120;
+      if(faSec.offsetTop <= y){ navFa.classList.add('active'); navEn.classList.remove('active'); }
+      else { navEn.classList.add('active'); navFa.classList.remove('active'); }
+    }catch(e){}
+  }
+  window.addEventListener('scroll', setActive, {passive:true});
+  setActive();
+</script>
+</body>
+</html>
